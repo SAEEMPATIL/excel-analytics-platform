@@ -1,23 +1,32 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const port = 5000;
 
-// Route setup
-const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
+// Set up Multer storage options
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');  // Save files to the 'uploads' folder
+  },
+  filename: (req, file, cb) => {
+    // Use original file name and add a timestamp to avoid name conflicts
+    cb(null, Date.now() + path.extname(file.originalname));  // Corrected here
+  }
+});
 
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-    .then(() => console.log('MongoDB connected'))
-    .catch((err) => console.log('MongoDB error', err));
-  
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  
+const upload = multer({ storage: storage });
+
+// File upload route
+app.post('/api/file/upload', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No file uploaded');
+  }
+  res.send('File uploaded successfully');
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
