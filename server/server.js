@@ -4,6 +4,9 @@ const path = require('path');
 
 const app = express();
 const port = 5000;
+const cors = require('cors');
+app.use(cors());
+
 
 // Set up Multer storage options
 const storage = multer.diskStorage({
@@ -23,7 +26,7 @@ app.post('/api/file/upload', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).send('No file uploaded');
   }
-  res.send('File uploaded successfully');
+ res.json({ message: 'File uploaded successfully' });
 });
 
 // Start the server
