@@ -1,35 +1,36 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
+const cors = require('cors');
+const authRoutes = require('./routes/authRoutes'); // ✅ this import is correct
+const excelRoutes = require('./routes/excel');
+const mongoose = require('mongoose');
+const profileRoutes = require('./routes/profileRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
+
+
+
+
+mongoose.connect('mongodb://localhost:27017/excelAnalytics', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB connected'))
+.catch((err) => console.error('MongoDB connection error:', err));
 
 const app = express();
 const port = 5000;
-const cors = require('cors');
+
 app.use(cors());
+app.use(express.json()); // needed to parse JSON bodies
 
+// ✅ Add this line
+app.use('/api/auth', authRoutes);  // 🔥 now /api/auth/signup will work
 
-// Set up Multer storage options
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');  // Save files to the 'uploads' folder
-  },
-  filename: (req, file, cb) => {
-    // Use original file name and add a timestamp to avoid name conflicts
-    cb(null, Date.now() + path.extname(file.originalname));  // Corrected here
-  }
-});
+app.use('/api/excel', excelRoutes);
 
-const upload = multer({ storage: storage });
+app.use('/api/users', profileRoutes);
 
-// File upload route
-app.post('/api/file/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded');
-  }
- res.json({ message: 'File uploaded successfully' });
-});
+app.use('/api/upload', uploadRoutes);
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });

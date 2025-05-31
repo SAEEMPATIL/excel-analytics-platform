@@ -7,13 +7,17 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "axios": "^1.9.0",
     "bcrypt": "^5.1.1",
+    "chart.js": "^4.4.9",
+    "cloudinary": "^2.6.1",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.13.2",
-    "multer": "^1.4.4-lts.1",
+    "mongoose": "^8.15.1",
+    "multer": "^1.4.4",
+    "react-chartjs-2": "^5.3.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
