@@ -1,22 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './signup.css';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');       // your backend expects 'name'
+  const [email, setEmail] = useState('');     // your backend expects 'email'
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('user');   // default role, can be hardcoded or selectable
+  const [error, setError] = useState('');
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
 
-    // Save user to localStorage (dummy logic)
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    users.push({ username, password });
-    localStorage.setItem('users', JSON.stringify(users));
+    try {
+      
+      const res = await axios.post('http://localhost:5000/api/auth/signup', {
+        name,
+        email,
+        password,
+        role
+      });
 
-    alert('Signup successful! You can now login.');
-    navigate('/login');
+      alert('Signup successful! You can now login.');
+      navigate('/login');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Signup failed');
+    }
   };
 
   return (
@@ -25,20 +36,33 @@ const Signup = () => {
       <form onSubmit={handleSignup}>
         <input
           type="text"
-          placeholder="Choose username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Full Name"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          required
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
           required
         />
         <input
           type="password"
           placeholder="Choose password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
           required
         />
+        {/* Optional: role selector */}
+        {/* <select value={role} onChange={e => setRole(e.target.value)}>
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select> */}
         <button type="submit">Create Account</button>
       </form>
+      {error && <p style={{color: 'red'}}>{error}</p>}
     </div>
   );
 };

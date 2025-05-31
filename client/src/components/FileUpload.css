@@ -1,24 +1,5 @@
-/* FileUpload.css */
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-th, td {
-  padding: 8px;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-
-th {
-  background-color: #f4f4f4;
-}
-/* FileUpload.css */
-
 .upload-container {
-  max-width: 600px;
+  max-width: 900px;
   margin: 40px auto;
   padding: 20px 30px;
   border: 1px solid #ddd;
@@ -36,7 +17,7 @@ th {
 form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
 }
 
@@ -71,8 +52,44 @@ button[type="submit"]:hover {
   font-weight: 500;
 }
 
+.chart-controls {
+  margin: 20px auto;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chart-controls label {
+  font-weight: 500;
+  color: #333;
+}
+
+.chart-controls select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  margin-left: 8px;
+  min-width: 120px;
+}
+
+.upload-display {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-top: 30px;
+  gap: 20px;
+}
+
+.table-container,
+.chart-container {
+  flex: 1 1 48%;
+  max-width: 48%;
+  overflow-x: auto;
+}
+
 table {
-  margin: 30px auto 0;
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
@@ -87,4 +104,31 @@ th, td {
 th {
   background-color: #f1f1f1;
   font-weight: bold;
+}
+button.download-btn {
+  background-color: #28a745;
+  color: white;
+  padding: 10px 20px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin: 20px auto 0;
+  display: block;
+  max-width: 200px;
+  text-align: center;
+}
+
+button.download-btn:hover {
+  background-color: #1e7e34;
+}
+
+
+@media (max-width: 768px) {
+  .table-container,
+  .chart-container {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
 }

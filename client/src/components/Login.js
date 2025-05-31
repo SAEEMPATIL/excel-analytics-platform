@@ -1,53 +1,53 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import './login.css';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-const handleLogin = (e) => {
-  e.preventDefault();
+  const [error, setError] = useState('');
 
-  // Get stored users from localStorage
-  const users = JSON.parse(localStorage.getItem('users')) || [];
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      
+      // Save token from backend response
+      localStorage.setItem('token', res.data.token);
 
-  // Check if user exists
-  const validUser = users.find(
-    (user) => user.username === username && user.password === password
-  );
+      // Optionally save user info if needed
+      localStorage.setItem('loggedInUser', JSON.stringify(res.data.user));
 
-  if (validUser) {
-    // Optionally save session
-    localStorage.setItem('loggedInUser', JSON.stringify(validUser));
-
-    navigate('/upload');
-  } else {
-    alert('Invalid credentials');
-  }
-};
+      // Redirect
+      navigate('/upload');
+    } catch (err) {
+      setError('Invalid credentials or server error');
+    }
+  };
 
   return (
     <div className="login-container">
       <h2>Login</h2>
       <form onSubmit={handleLogin}>
         <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
           required
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
           required
         />
         <button type="submit">Login</button>
       </form>
-
+      {error && <p style={{color: 'red'}}>{error}</p>}
       <p>
         Don’t have an account? <Link to="/signup">Sign up</Link>
       </p>
