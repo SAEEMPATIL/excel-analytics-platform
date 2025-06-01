@@ -23,9 +23,8 @@ const DashboardLayout = ({ children }) => {
           <li><Link to="/profile">Profile</Link></li>
           <li><Link to="/upload">File Upload</Link></li>
           <li><Link to="/upload-history">Upload History</Link></li>
-          <li><Link to="/ai-summaries">AI Summaries</Link></li>
+          <li><Link to="/ai-summaries">Insights & AI Summaries</Link></li>
           <li><Link to="/element-integration">Element Integration</Link></li>
-          <li><Link to="/insights">Insights</Link></li>
           <li><Link to="/login">Logout</Link></li>
         </ul>
       </div>

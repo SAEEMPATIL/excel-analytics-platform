@@ -35,7 +35,7 @@ const FileUpload = ({ setExcelData }) => {
   const [uploadedFilename, setUploadedFilename] = useState('');
   const chartRef = useRef(null);
 
-  // We'll keep local excelData state only for display convenience
+  // Local data for display convenience
   const [localExcelData, setLocalExcelData] = useState([]);
 
   const handleChange = (e) => {
@@ -104,8 +104,19 @@ const FileUpload = ({ setExcelData }) => {
   const prepareChartData = () => {
     if (!xAxis || !yAxis || localExcelData.length === 0) return null;
 
-    const labels = localExcelData.map((row) => String(row[xAxis]));
-    const dataValues = localExcelData.map((row) => Number(row[yAxis]) || 0);
+    // Group and sum yAxis values by xAxis labels
+    const groupedData = localExcelData.reduce((acc, row) => {
+      const xValue = String(row[xAxis]);
+      const yValue = Number(row[yAxis]) || 0;
+      if (!acc[xValue]) {
+        acc[xValue] = 0;
+      }
+      acc[xValue] += yValue;
+      return acc;
+    }, {});
+
+    const labels = Object.keys(groupedData);
+    const dataValues = labels.map(label => groupedData[label]);
 
     return {
       labels,
