@@ -1,147 +1,237 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
+import { Bar, Line, Pie } from 'react-chartjs-2';
 import {
-  LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip,
-  BarChart, Bar
-} from 'recharts';
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const ELEMENTS = [
-  { id: 'line-chart', label: '📈 Line Chart' },
-  { id: 'bar-chart', label: '📊 Bar Chart' },
-  { id: 'data-table', label: '📋 Data Table' },
-  { id: 'summary-box', label: '🧠 AI Summary' }
-];
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const ElementIntegration = ({ data }) => {
-  const [selectedElements, setSelectedElements] = useState([]);
-  const [summary, setSummary] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [factor, setFactor] = useState('');
+  const [chartType, setChartType] = useState('bar');
 
-  // Basic data checks
-  const xKey = data?.length ? Object.keys(data[0])[0] : null; // e.g. 'Month'
-  // Pick first numeric column for charts
-  const yKey = data?.length
-    ? Object.keys(data[0]).find(key => typeof data[0][key] === 'number')
-    : null;
+  // Group data by factor, count occurrences and calculate percentages
+  const groupData = () => {
+    if (!factor || data.length === 0) return { labels: [], counts: {}, percentages: {}, total: 0 };
 
-  const toggleElement = (id) => {
-    setSelectedElements(prev =>
-      prev.includes(id)
-        ? prev.filter(el => el !== id)
-        : [...prev, id]
+    const counts = {};
+    data.forEach((row) => {
+      const val = row[factor] || 'N/A';
+      counts[val] = (counts[val] || 0) + 1;
+    });
+
+    const total = data.length;
+    const percentages = {};
+    Object.keys(counts).forEach((key) => {
+      percentages[key] = ((counts[key] / total) * 100).toFixed(2);
+    });
+
+    return { labels: Object.keys(counts), counts, percentages, total };
+  };
+
+  const renderChart = () => {
+    if (!factor) return null;
+
+    const { labels, counts } = groupData();
+
+    if (labels.length === 0) return <p>No valid data for chart.</p>;
+
+    const dataValues = labels.map((label) => counts[label]);
+
+    const chartData = {
+      labels,
+      datasets: [
+        {
+          label: `Count of ${factor}`,
+          data: dataValues,
+          backgroundColor:
+            chartType === 'pie'
+              ? [
+                  '#FF6384',
+                  '#36A2EB',
+                  '#FFCE56',
+                  '#4BC0C0',
+                  '#9966FF',
+                  '#FF9F40',
+                ]
+              : 'rgba(75,192,192,0.6)',
+          borderColor: 'rgba(75,192,192,1)',
+          borderWidth: 1,
+          fill: true,
+        },
+      ],
+    };
+
+    const options = {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+      },
+    };
+
+    const ChartComponent =
+      chartType === 'bar' ? Bar : chartType === 'line' ? Line : Pie;
+
+    return (
+      <div style={{ maxWidth: 700, margin: '20px auto' }}>
+        <ChartComponent data={chartData} options={options} id="chart" />
+      </div>
     );
   };
 
-  const generateSummary = () => {
-    if (!data || !data.length || !yKey) {
-      setSummary('No valid data to summarize.');
-      return;
-    }
-    setLoading(true);
-    setTimeout(() => {
-      // Simple summary: avg, max, min of yKey values
-      const values = data.map(row => row[yKey]);
-      const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
-      const max = Math.max(...values);
-      const min = Math.min(...values);
-      setSummary(`Summary of "${yKey}": Avg = ${avg}, Max = ${max}, Min = ${min}.`);
-      setLoading(false);
-    }, 1200);
-  };
-
-  useEffect(() => {
-    if (selectedElements.includes('summary-box')) {
-      generateSummary();
-    }
-  }, [selectedElements, data]);
-
-  if (!data || !data.length) {
-    return <p className="p-6 text-red-600">No data available to display elements.</p>;
-  }
+  const { labels, counts, percentages, total } = groupData();
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">🧩 Element Integration</h2>
-
-      <div className="flex flex-wrap gap-4 mb-6">
-        {ELEMENTS.map(el => (
-          <button
-            key={el.id}
-            onClick={() => toggleElement(el.id)}
-            className={`px-4 py-2 rounded ${
-              selectedElements.includes(el.id)
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-200 text-gray-800'
-            }`}
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginBottom: '1rem',
+        }}
+      >
+        <label>
+          Select factor:
+          <select
+            value={factor}
+            onChange={(e) => setFactor(e.target.value)}
+            style={{ marginLeft: 8 }}
           >
-            {el.label}
-          </button>
-        ))}
+            <option value="">Select column</option>
+            {Object.keys(data[0] || {}).map((col) => (
+              <option key={col} value={col}>
+                {col}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Chart Type:
+          <select
+            value={chartType}
+            onChange={(e) => setChartType(e.target.value)}
+            style={{ marginLeft: 8 }}
+          >
+            <option value="bar">Bar</option>
+            <option value="line">Line</option>
+            <option value="pie">Pie</option>
+          </select>
+        </label>
       </div>
 
-      <div className="space-y-6">
-        {selectedElements.includes('line-chart') && xKey && yKey && (
-          <div className="p-4 bg-white rounded shadow">
-            <h3 className="font-semibold mb-2">Line Chart ({yKey} over {xKey})</h3>
-            <LineChart width={500} height={300} data={data}>
-              <Line type="monotone" dataKey={yKey} stroke="#8884d8" />
-              <CartesianGrid stroke="#ccc" />
-              <XAxis dataKey={xKey} />
-              <YAxis />
-              <Tooltip />
-            </LineChart>
-          </div>
-        )}
+      {renderChart()}
 
-        {selectedElements.includes('bar-chart') && xKey && yKey && (
-          <div className="p-4 bg-white rounded shadow">
-            <h3 className="font-semibold mb-2">Bar Chart ({yKey} over {xKey})</h3>
-            <BarChart width={500} height={300} data={data}>
-              <Bar dataKey={yKey} fill="#82ca9d" />
-              <CartesianGrid stroke="#ccc" />
-              <XAxis dataKey={xKey} />
-              <YAxis />
-              <Tooltip />
-            </BarChart>
-          </div>
-        )}
-
-        {selectedElements.includes('data-table') && (
-          <div className="p-4 bg-white rounded shadow overflow-x-auto">
-            <h3 className="font-semibold mb-2">Data Table</h3>
-            <table className="min-w-full table-auto border border-gray-300">
-              <thead className="bg-gray-100">
-                <tr>
-                  {Object.keys(data[0]).map((key) => (
-                    <th key={key} className="px-4 py-2 border">{key}</th>
-                  ))}
+      {factor && labels.length > 0 && (
+        <div style={{ maxWidth: 700, margin: '20px auto' }}>
+          <h3>Statistics for "{factor}"</h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Value</th>
+                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Count</th>
+                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Percentage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {labels.map((label) => (
+                <tr key={label}>
+                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{label}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{counts[label]}</td>
+                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{percentages[label]}%</td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.map((row, i) => (
-                  <tr key={i}>
-                    {Object.keys(row).map((key) => (
-                      <td key={key} className="px-4 py-2 border">{row[key]}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {selectedElements.includes('summary-box') && (
-          <div className="p-4 bg-white rounded shadow">
-            <h3 className="font-semibold mb-2">AI Summary</h3>
-            {loading ? (
-              <p className="text-gray-500 italic">Generating summary...</p>
-            ) : (
-              <p className="text-gray-700">{summary}</p>
-            )}
-          </div>
-        )}
-      </div>
+              ))}
+              <tr>
+                <td style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold' }}>
+                  Total
+                </td>
+                <td style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold' }}>
+                  {total}
+                </td>
+                <td style={{ border: '1px solid #ddd', padding: '8px' }}></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
 
-export default ElementIntegration;
+const ElementIntegrationUploader = () => {
+  const [excelData, setExcelData] = useState([]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      setExcelData(data);
+
+      toast.success('Excel file uploaded successfully!');
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  return (
+    <div style={{ maxWidth: 900, margin: 'auto', padding: '2rem' }}>
+      <h1>Upload Excel File & Visualize Data</h1>
+      <input
+        type="file"
+        accept=".xlsx, .xls"
+        onChange={handleFileUpload}
+        style={{ marginBottom: '1rem' }}
+      />
+
+      {excelData.length > 0 ? (
+        <ElementIntegration data={excelData} />
+      ) : (
+        <p>Please upload an Excel file to see data visualization.</p>
+      )}
+
+      <ToastContainer
+        position="top-right"
+        autoClose={2500}
+        hideProgressBar={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
+    </div>
+  );
+};
+
+export default ElementIntegrationUploader;

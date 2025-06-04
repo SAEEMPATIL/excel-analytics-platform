@@ -1,14 +1,47 @@
-.home-container {
+.home-card {
+  background-color: rgba(28, 40, 61, 0.85); /* Darker navy-blueish background for better contrast */
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(8, 32, 70, 0.6); /* subtle blue shadow */
   text-align: center;
-  margin-top: 100px;
 }
 
-.home-container button {
-  padding: 10px 20px;
-  font-size: 16px;
-  background: #007bff;
-  color: white;
+.home-card span {
+  color: #5cb1d3; /* Soft sky blue highlight */
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.home-card button {
+  margin-top: 20px;
+  padding: 14px 28px;
+  font-size: 18px;
+  background: linear-gradient(90deg, #0560e8, #0d3c91); /* Gradient from medium to deep blue */
+  color: #f0f6fc; /* Light off-white for text */
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
+  box-shadow: 0 5px 15px rgba(5, 96, 232, 0.6);
+  transition: background 0.35s ease, box-shadow 0.35s ease;
+}
+
+.home-card button:hover {
+  background: linear-gradient(90deg, #edf1f7, #0560e8); /* reverse gradient on hover */
+  box-shadow: 0 8px 25px rgba(13, 60, 145, 0.85);
+}
+h3 {
+  color: #f9fbfc; /* Deep blue */
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  text-shadow: 1px 1px 2px rgba(13, 71, 161, 0.7);
+}
+
+p {
+  color: #ffffff; /* Medium sky blue */
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-top: 0;
 }

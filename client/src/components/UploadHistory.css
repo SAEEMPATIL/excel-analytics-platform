@@ -2,7 +2,7 @@
   max-width: 800px;
   margin: 40px auto;
   padding: 20px;
-  background: #fff;
+  background: #020202;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
@@ -10,25 +10,29 @@
 .history-container h2 {
   text-align: center;
   margin-bottom: 20px;
-  color: #333;
+  color: #4f658e;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  color: #384392;  /* Corrected - removed quotes */
 }
 
 th, td {
-  border: 1px solid #ddd;
+  border: 1px solid #384392;
   padding: 10px;
   text-align: left;
+  color: #0f0f0f; /* Example: lighter text color for table cells */
 }
 
 th {
-  background-color: #f4f4f4;
+  background-color: #536ab2;
   font-weight: 600;
+  color: #e0e7ff; /* Lighter color for headers */
 }
+
 
 .status-msg {
   text-align: center;

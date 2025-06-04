@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import './FileUpload.css';
+import * as XLSX from 'xlsx';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -13,6 +14,8 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 ChartJS.register(
   CategoryScale,
@@ -26,255 +29,198 @@ ChartJS.register(
   Filler
 );
 
-const FileUpload = ({ setExcelData }) => {
-  const [file, setFile] = useState(null);
-  const [message, setMessage] = useState('');
+const FileUpload = () => {
+  const [excelData, setExcelData] = useState([]);
   const [xAxis, setXAxis] = useState('');
   const [yAxis, setYAxis] = useState('');
-  const [chartType, setChartType] = useState('Bar');
-  const [uploadedFilename, setUploadedFilename] = useState('');
-  const chartRef = useRef(null);
+  const [chartType, setChartType] = useState('bar');
 
-  // Local data for display convenience
-  const [localExcelData, setLocalExcelData] = useState([]);
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const handleChange = (e) => {
-    setFile(e.target.files[0]);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(worksheet);
+      setExcelData(json);
+
+      try {
+        const existingHistory = JSON.parse(localStorage.getItem("uploadHistory") || "[]");
+        const newEntry = {
+          fileName: file.name,
+          uploadedAt: new Date().toISOString(),
+          data: json,
+        };
+        const updatedHistory = [newEntry, ...existingHistory];
+        localStorage.setItem("uploadHistory", JSON.stringify(updatedHistory));
+      } catch (error) {
+        console.error("Error saving upload history:", error);
+      }
+
+      toast.success('Excel file uploaded and previewed successfully!');
+    };
+    reader.readAsArrayBuffer(file);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!file) {
-      setMessage('Please select a file');
+  const handleDownloadExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+    XLSX.writeFile(workbook, 'exported_excel.xlsx');
+    toast.success('Excel downloaded successfully!');
+  };
+
+  const handleDownloadChart = () => {
+    const canvas = document.getElementById('chart');
+    if (!canvas) {
+      toast.error('No chart available to download.');
       return;
     }
-
-    try {
-      setMessage('Uploading file...');
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const uploadResponse = await fetch('http://localhost:5000/api/excel/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const err = await uploadResponse.json();
-        setMessage(`Upload failed: ${err.message}`);
-        return;
-      }
-
-      const uploadData = await uploadResponse.json();
-      const fileId = uploadData.fileId;
-      const filename = uploadData.filename || file.name;
-      setUploadedFilename(filename);
-      setMessage('File uploaded successfully. Fetching data...');
-
-      const dataResponse = await fetch(`http://localhost:5000/api/excel/data/${fileId}`);
-      if (!dataResponse.ok) {
-        setMessage('Failed to fetch parsed data');
-        return;
-      }
-
-      const dataJson = await dataResponse.json();
-      setLocalExcelData(dataJson.data);   // local display
-      setExcelData(dataJson.data);        // update parent App state
-
-      setXAxis('');
-      setYAxis('');
-      setChartType('Bar');
-      setMessage('File data loaded successfully');
-
-      // Save to localStorage history
-      const historyItem = {
-        fileName: filename,
-        uploadedAt: new Date().toISOString(),
-        data: dataJson.data,
-      };
-
-      const existingHistory = JSON.parse(localStorage.getItem('uploadHistory') || '[]');
-      localStorage.setItem('uploadHistory', JSON.stringify([historyItem, ...existingHistory]));
-    } catch (error) {
-      console.error(error);
-      setMessage('Error uploading or fetching file data');
-    }
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'chart.png';
+    a.click();
+    toast.success('Chart downloaded successfully!');
   };
 
-  const prepareChartData = () => {
-    if (!xAxis || !yAxis || localExcelData.length === 0) return null;
+  const groupData = () => {
+    if (!xAxis || !yAxis || excelData.length === 0) return { labels: [], dataValues: [] };
 
-    // Group and sum yAxis values by xAxis labels
-    const groupedData = localExcelData.reduce((acc, row) => {
-      const xValue = String(row[xAxis]);
-      const yValue = Number(row[yAxis]) || 0;
-      if (!acc[xValue]) {
-        acc[xValue] = 0;
+    const grouped = {};
+
+    excelData.forEach((row) => {
+      const xVal = row[xAxis];
+      let yVal = parseFloat(row[yAxis]);
+      if (isNaN(yVal)) yVal = 0;
+
+      if (grouped[xVal]) {
+        grouped[xVal] += yVal;
+      } else {
+        grouped[xVal] = yVal;
       }
-      acc[xValue] += yValue;
-      return acc;
-    }, {});
+    });
 
-    const labels = Object.keys(groupedData);
-    const dataValues = labels.map(label => groupedData[label]);
+    const labels = Object.keys(grouped);
+    const dataValues = labels.map((label) => grouped[label]);
 
-    return {
-      labels,
-      datasets: [
-        {
-          label: yAxis,
-          data: dataValues,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1,
-          fill: chartType === 'Line' ? false : true,
-        },
-      ],
-    };
+    return { labels, dataValues };
   };
 
   const renderChart = () => {
-    const data = prepareChartData();
-    if (!data) return <p>Please select X and Y axis to display chart</p>;
+    if (!xAxis || !yAxis) return null;
+
+    const { labels, dataValues } = groupData();
+
+    if (labels.length === 0) return <p>No valid data for chart.</p>;
+
+    const data = {
+      labels,
+      datasets: [
+        {
+          label: `${yAxis} summed by ${xAxis}`,
+          data: dataValues,
+          backgroundColor:
+            chartType === 'pie'
+              ? [
+                  '#FF6384',
+                  '#36A2EB',
+                  '#FFCE56',
+                  '#4BC0C0',
+                  '#9966FF',
+                  '#FF9F40',
+                ]
+              : 'rgba(75,192,192,0.6)',
+          borderColor: 'rgba(75,192,192,1)',
+          borderWidth: 1,
+          fill: true,
+        },
+      ],
+    };
 
     const options = {
       responsive: true,
       plugins: {
-        legend: { display: true, position: 'top' },
-        tooltip: { enabled: true },
+        legend: {
+          position: 'top',
+        },
       },
-      scales: { y: { beginAtZero: true } },
     };
 
-    switch (chartType) {
-      case 'Bar':
-        return <Bar ref={chartRef} data={data} options={options} />;
-      case 'Line':
-        return <Line ref={chartRef} data={data} options={options} />;
-      case 'Pie': {
-        const pieData = {
-          labels: data.labels,
-          datasets: [
-            {
-              label: yAxis,
-              data: data.datasets[0].data,
-              backgroundColor: data.labels.map(
-                () =>
-                  `rgba(${Math.floor(Math.random() * 255)},${Math.floor(
-                    Math.random() * 255
-                  )},${Math.floor(Math.random() * 255)}, 0.6)`
-              ),
-              borderColor: '#fff',
-              borderWidth: 1,
-            },
-          ],
-        };
-        return (
-          <Pie
-            ref={chartRef}
-            data={pieData}
-            options={{ responsive: true, plugins: { legend: { position: 'right' } } }}
-          />
-        );
-      }
-      default:
-        return null;
-    }
-  };
+    const ChartComponent =
+      chartType === 'bar' ? Bar : chartType === 'line' ? Line : Pie;
 
-  const downloadExcelFile = () => {
-    if (!uploadedFilename) {
-      alert('No file available to download');
-      return;
-    }
-
-    fetch(`http://localhost:5000/api/excel/download/${uploadedFilename}`)
-      .then((response) => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', uploadedFilename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-      })
-      .catch((error) => {
-        console.error('Download error:', error);
-        alert('Download failed');
-      });
-  };
-
-  const downloadChartImage = () => {
-    if (!chartRef.current) {
-      alert('No chart to download');
-      return;
-    }
-    const base64Image = chartRef.current.toBase64Image();
-    const link = document.createElement('a');
-    link.href = base64Image;
-    link.download = 'chart.png';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    return (
+      <div className="chart-container">
+        <ChartComponent data={data} options={options} id="chart" />
+      </div>
+    );
   };
 
   return (
-    <div className="upload-container">
-      <h2>Upload Excel File</h2>
-      <form onSubmit={handleSubmit}>
-        <input type="file" accept=".xlsx,.xls" onChange={handleChange} />
-        <button type="submit">Upload</button>
-      </form>
-      <p className="message">{message}</p>
-
-      {localExcelData.length > 0 && (
+    <div className="file-upload-container">
+      <h2>📊 Upload Excel File and Visualize</h2>
+      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
+      {excelData.length > 0 && (
         <>
-          <div className="chart-controls">
+          <div className="dropdowns">
             <label>
               X-Axis:
               <select value={xAxis} onChange={(e) => setXAxis(e.target.value)}>
-                <option value="">Select</option>
-                {Object.keys(localExcelData[0]).map((col) => (
+                <option value="">Select column</option>
+                {Object.keys(excelData[0] || {}).map((col) => (
                   <option key={col} value={col}>
                     {col}
                   </option>
                 ))}
               </select>
             </label>
-
             <label>
               Y-Axis:
               <select value={yAxis} onChange={(e) => setYAxis(e.target.value)}>
-                <option value="">Select</option>
-                {Object.keys(localExcelData[0]).map((col) => (
+                <option value="">Select column</option>
+                {Object.keys(excelData[0] || {}).map((col) => (
                   <option key={col} value={col}>
                     {col}
                   </option>
                 ))}
               </select>
             </label>
-
             <label>
               Chart Type:
-              <select value={chartType} onChange={(e) => setChartType(e.target.value)}>
-                <option value="Bar">Bar</option>
-                <option value="Line">Line</option>
-                <option value="Pie">Pie</option>
+              <select
+                value={chartType}
+                onChange={(e) => setChartType(e.target.value)}
+              >
+                <option value="bar">Bar</option>
+                <option value="line">Line</option>
+                <option value="pie">Pie</option>
               </select>
             </label>
           </div>
 
-          <div className="chart-container">{renderChart()}</div>
+          {renderChart()}
 
-          <button onClick={downloadExcelFile}>Download Excel File</button>
-          <button onClick={downloadChartImage}>Download Chart Image</button>
+          <div className="buttons">
+            <button onClick={handleDownloadExcel}>📥 Download Excel</button>
+            <button onClick={handleDownloadChart}>📈 Download Chart</button>
+          </div>
         </>
       )}
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
     </div>
   );
 };

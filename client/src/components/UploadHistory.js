@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import './UploadHistory.css';
 
 const UploadHistory = ({ onSelect }) => {
   const [history, setHistory] = useState([]);
@@ -24,16 +25,22 @@ const UploadHistory = ({ onSelect }) => {
         <p>No upload history found.</p>
       ) : (
         <>
-          <table border="1" cellPadding="5" style={{ width: "100%" }}>
-            <thead>
+          <table border="1" cellPadding="5" style={{ width: "100%", borderCollapse: 'collapse' }}>
+            <thead style={{ backgroundColor: '#f0f0f0' }}>
               <tr>
-                <th>File Name</th>
-                <th>Uploaded At</th>
+                <th style={{ cursor: 'default' }}>File Name</th>
+                <th style={{ cursor: 'default' }}>Uploaded At</th>
               </tr>
             </thead>
             <tbody>
               {history.map((item, idx) => (
-                <tr key={idx}>
+                <tr 
+                  key={idx} 
+                  onClick={() => handleLoad(item)} 
+                  style={{ cursor: 'pointer' }}
+                  onMouseOver={e => e.currentTarget.style.backgroundColor = '#e6f7ff'}
+                  onMouseOut={e => e.currentTarget.style.backgroundColor = ''}
+                >
                   <td>{item.fileName}</td>
                   <td>{new Date(item.uploadedAt).toLocaleString()}</td>
                 </tr>
